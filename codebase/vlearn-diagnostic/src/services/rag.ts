@@ -1,9 +1,8 @@
-import t1 from '../assets/transcripts/transcript-01-clean.md?raw';
-import t2 from '../assets/transcripts/transcript-02-clean.md?raw';
-import t3 from '../assets/transcripts/transcript-03-clean.md?raw';
-import t4 from '../assets/transcripts/transcript-04-clean.md?raw';
-import t5 from '../assets/transcripts/transcript-05-clean.md?raw';
-import t6 from '../assets/transcripts/transcript-06-clean.md?raw';
+﻿const transcriptModules = import.meta.glob<string>('../assets/transcripts/*.md', {
+  query: '?raw',
+  import: 'default',
+  eager: true,
+});
 
 export interface RAGChunk {
   id: string;
@@ -12,21 +11,17 @@ export interface RAGChunk {
   cleanContent: string;
 }
 
-const rawTranscripts = [
-  { text: t1, source: 'Day 2 sáng - Xác định bài toán kinh doanh cho AI' },
-  { text: t2, source: 'Day 2 - Chỉ số thành công & mức tự động hoá' },
-  { text: t3, source: 'Day 2 chiều - Soi bài toán các nhóm & ràng buộc' },
-  { text: t4, source: 'Day 1 - Foundation: cách LLM hoạt động' },
-  { text: t5, source: 'Buổi về bài toán, đánh giá & dữ liệu' },
-  { text: t6, source: 'Buổi Foundation: transformer & attention' },
-];
+const rawTranscripts = Object.entries(transcriptModules).map(([path, text]) => ({
+  text,
+  source: path.split('/').pop()?.replace(/\.md$/, '') ?? 'Transcript bài h?c',
+}));
 
 function removeAccents(str: string): string {
   return str
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
-    .replace(/đ/g, 'd')
-    .replace(/Đ/g, 'D');
+    .replace(/Ä‘/g, 'd')
+    .replace(/Ä/g, 'D');
 }
 
 // Parse transcripts into searchable chunks
@@ -115,7 +110,7 @@ export function searchTranscripts(query: string, topK = 4): RAGChunk[] {
  */
 export function getAvailableTopics(): string[] {
   return [
-    'Prompt Engineering cơ bản',
+    'Prompt Engineering cÆ¡ báº£n',
     'Context & Memory in LLMs',
     'Problem Statement in AI',
     'User Research & Impact Analysis',
