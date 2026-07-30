@@ -71,7 +71,14 @@ const chunks: RAGChunk[] = (() => {
  */
 export function searchTranscripts(query: string, topK = 4): RAGChunk[] {
   const cleanQuery = removeAccents(query.toLowerCase());
-  const words = cleanQuery.split(/\s+/).filter(w => w.length > 1);
+  const stopwords = new Set([
+    'toi', 'dang', 'hoc', 'ket', 'qua', 'lam', 'bai', 'cau', 'tra', 'loi',
+    'cua', 'la', 'cac', 'khac', 'dung', 'sai', 'hay', 'giup', 'phat', 'hien',
+    'lo', 'hong', 'kien', 'thuc', 'va', 'de', 'xuat', 'slide', 'tuong', 'ung',
+    'can', 'on', 'tap', 'nhe', 'cho', 'minh', 'xem', 'voi', 've', 'co', 'co-the',
+    'trong', 'mot', 'nhung', 'de-xuat'
+  ]);
+  const words = cleanQuery.split(/\s+/).filter(w => w.length > 1 && !stopwords.has(w));
   
   if (words.length === 0) return [];
   
