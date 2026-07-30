@@ -396,13 +396,52 @@ interface AIQuizProps {
   onAnswer: (index: number, choiceIndex: number) => void;
   onSubmit: () => void;
   onBack: () => void;
+  wrongQuestions?: { index: number; question: any }[];
+  onRequestReview?: () => void;
 }
 
-export function ScreenAIQuiz({ quiz, answers, submitted, onAnswer, onSubmit, onBack }: AIQuizProps) {
+export function ScreenAIQuiz({ quiz, answers, submitted, onAnswer, onSubmit, onBack, wrongQuestions, onRequestReview }: AIQuizProps) {
   const [currentIdx, setCurrentIdx] = useState(0);
   const [activeReviewIdx, setActiveReviewIdx] = useState(0);
+  
+  // Guard: validate quiz data
+  if (!quiz || !quiz.questions || !Array.isArray(quiz.questions) || quiz.questions.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-16 text-center">
+        <div className="text-5xl mb-4">⚠️</div>
+        <h2 className="text-xl font-bold text-slate-800 dark:text-slate-100 mb-2">Quiz không hợp lệ</h2>
+        <p className="text-slate-500 mb-6">Dữ liệu quiz bị lỗi. Vui lòng quay lại và yêu cầu AI tạo quiz mới.</p>
+        <button
+          onClick={onBack}
+          className="px-6 py-2 bg-purple-600 text-white rounded-lg font-bold hover:bg-purple-700"
+        >
+          Quay lại
+        </button>
+      </div>
+    );
+  }
+  
   const totalQuestions = quiz.questions.length;
-  const currentQuestion = quiz.questions[currentIdx];
+  // Ensure currentIdx is within bounds
+  const safeIdx = Math.min(Math.max(0, currentIdx), totalQuestions - 1);
+  const currentQuestion = quiz.questions[safeIdx];
+  
+  // Extra guard: validate current question
+  if (!currentQuestion || !currentQuestion.question || !Array.isArray(currentQuestion.options)) {
+    return (
+      <div className="flex flex-col items-center justify-center py-16 text-center">
+        <div className="text-5xl mb-4">⚠️</div>
+        <h2 className="text-xl font-bold text-slate-800 dark:text-slate-100 mb-2">Câu hỏi không hợp lệ</h2>
+        <p className="text-slate-500 mb-6">Câu hỏi số {currentIdx + 1} bị lỗi. Vui lòng quay lại và yêu cầu AI tạo quiz mới.</p>
+        <button
+          onClick={onBack}
+          className="px-6 py-2 bg-purple-600 text-white rounded-lg font-bold hover:bg-purple-700"
+        >
+          Quay lại
+        </button>
+      </div>
+    );
+  }
 
   const handleNext = () => {
     if (currentIdx < totalQuestions - 1) {
@@ -600,7 +639,15 @@ export function ScreenAIQuiz({ quiz, answers, submitted, onAnswer, onSubmit, onB
           </div>
         </div>
 
-        <div className="flex justify-center pt-2">
+        <div className="flex justify-center gap-3 pt-2">
+          {wrongQuestions && wrongQuestions.length > 0 && (
+            <button
+              onClick={onRequestReview}
+              className="px-6 py-3 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-xl transition-all shadow-md hover:shadow-lg flex items-center gap-1.5 text-sm"
+            >
+              <span>📝</span> Ôn tập câu sai với AI Tutor
+            </button>
+          )}
           <button
             onClick={onBack}
             className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition-all shadow-md hover:shadow-lg flex items-center gap-1.5 text-sm"

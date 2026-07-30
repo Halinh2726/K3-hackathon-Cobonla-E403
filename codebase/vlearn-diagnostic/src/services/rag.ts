@@ -1,8 +1,4 @@
-﻿const transcriptModules = import.meta.glob<string>('../assets/transcripts/*.md', {
-  query: '?raw',
-  import: 'default',
-  eager: true,
-});
+﻿import { d1SlideContent } from '../data/slideContent';
 
 export interface RAGChunk {
   id: string;
@@ -11,9 +7,16 @@ export interface RAGChunk {
   cleanContent: string;
 }
 
+// Load transcripts from glob
+const transcriptModules = import.meta.glob<string>('../assets/transcripts/*.md', {
+  query: '?raw',
+  import: 'default',
+  eager: true,
+});
+
 const rawTranscripts = Object.entries(transcriptModules).map(([path, text]) => ({
   text,
-  source: path.split('/').pop()?.replace(/\.md$/, '') ?? 'Transcript bài h?c',
+  source: path.split('/').pop()?.replace(/\.md$/, '') ?? 'Transcript bai hoc',
 }));
 
 function removeAccents(str: string): string {
@@ -25,22 +28,19 @@ function removeAccents(str: string): string {
 }
 
 // Parse transcripts into searchable chunks
-const chunks: RAGChunk[] = (() => {
+const transcriptChunks: RAGChunk[] = (() => {
   const parsedChunks: RAGChunk[] = [];
   
   rawTranscripts.forEach(({ text, source }) => {
-    // Split by double newline or lines to find paragraphs
     const paragraphs = text.split(/\n\s*\n/);
     
     paragraphs.forEach(p => {
       const trimmed = p.trim();
       if (!trimmed) return;
       
-      // Match [Txx-NNN] or **[Txx-NNN]**
       const match = trimmed.match(/\[(T\d{2}-\d{3})\]/);
       if (match) {
         const id = match[1];
-        // Clean content: remove block markers
         const content = trimmed
           .replace(/\*\*\[T\d{2}-\d{3}\]\*\*/g, '')
           .replace(/\[T\d{2}-\d{3}\]/g, '')
@@ -61,9 +61,37 @@ const chunks: RAGChunk[] = (() => {
   return parsedChunks;
 })();
 
-/**
- * Searches the transcripts using simple keyword overlap with accent insensitivity
- */
+// Parse slide content into searchable chunks
+const slideChunks: RAGChunk[] = (() => {
+  const parsedChunks: RAGChunk[] = [];
+  const paragraphs = d1SlideContent.split(/\n{2,}/);
+  
+  let pageNum = 1;
+  paragraphs.forEach(p => {
+    const trimmed = p.trim();
+    if (!trimmed || trimmed.length < 30) return;
+    
+    // Extract page number from content
+    const pageMatch = trimmed.match(/--\s*(\d+)\s*of\s*\d+\s*--/);
+    if (pageMatch) {
+      pageNum = parseInt(pageMatch[1]);
+      return; // Skip page separator lines
+    }
+    
+    parsedChunks.push({
+      id: `SLIDE-${pageNum}`,
+      source: 'Day 1: AI & LLM Foundation (Slide)',
+      content: trimmed,
+      cleanContent: removeAccents(trimmed.toLowerCase()),
+    });
+  });
+  
+  return parsedChunks;
+})();
+
+// All chunks combined
+const allChunks = [...transcriptChunks, ...slideChunks];
+
 export function searchTranscripts(query: string, topK = 4): RAGChunk[] {
   const cleanQuery = removeAccents(query.toLowerCase());
   const stopwords = new Set([
@@ -71,27 +99,31 @@ export function searchTranscripts(query: string, topK = 4): RAGChunk[] {
     'cua', 'la', 'cac', 'khac', 'dung', 'sai', 'hay', 'giup', 'phat', 'hien',
     'lo', 'hong', 'kien', 'thuc', 'va', 'de', 'xuat', 'slide', 'tuong', 'ung',
     'can', 'on', 'tap', 'nhe', 'cho', 'minh', 'xem', 'voi', 've', 'co', 'co-the',
-    'trong', 'mot', 'nhung', 'de-xuat'
+    'trong', 'mot', 'nhung', 'de-xuat', 'gi', 'chi', 'ra', 'se', 'viec'
   ]);
   const words = cleanQuery.split(/\s+/).filter(w => w.length > 1 && !stopwords.has(w));
   
   if (words.length === 0) return [];
   
-  const scored = chunks.map(chunk => {
+  const scored = allChunks.map(chunk => {
     let score = 0;
     
-    // Calculate simple keyword match score
     words.forEach(word => {
       if (chunk.cleanContent.includes(word)) {
-        score += 10; // base points for match
-        // bonus if it matches exact substring
+        score += 10;
         if (chunk.cleanContent.indexOf(word) !== -1) {
           score += 2;
         }
       }
     });
     
-    // Penalize excessively long chunks slightly to favor concise answers
+    // Boost score for slide content if query seems to be about current lesson
+    const lessonKeywords = ['ai', 'llm', 'transformer', 'attention', 'token', 'context', 'agent', 'rag', 'prompt'];
+    const isLessonQuery = words.some(w => lessonKeywords.includes(w));
+    if (isLessonQuery && chunk.source.includes('Slide')) {
+      score *= 1.2; // Slight boost for slide content
+    }
+    
     const lengthPenalty = Math.log(chunk.content.length) * 0.1;
     const finalScore = score > 0 ? score - lengthPenalty : 0;
     
@@ -105,17 +137,15 @@ export function searchTranscripts(query: string, topK = 4): RAGChunk[] {
     .map(item => item.chunk);
 }
 
-/**
- * Gets a quick list of unique topics from the lessons for suggestions
- */
 export function getAvailableTopics(): string[] {
   return [
-    'Prompt Engineering cÆ¡ báº£n',
+    'Prompt Engineering co ban',
     'Context & Memory in LLMs',
     'Problem Statement in AI',
     'User Research & Impact Analysis',
     'Agent Architecture & Tool Calling',
     'RAG & Context Optimization',
     'Transformer & Attention Mechanism',
+    'LLM Foundation - Slide Day 1',
   ];
 }

@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { Sidebar, NavItem } from './components/Sidebar';
 import { Header } from './components/Header';
 import { Chatbot } from './components/Chatbot';
+import { SlideViewer } from './components/SlideViewer';
+import { SlideLibrary } from './components/SlideLibrary';
 import {
   ScreenDashboard,
   ScreenLessons,
@@ -9,6 +11,8 @@ import {
   ScreenSettings,
   ScreenAIQuiz
 } from './components/Screens';
+import { initializeSlides, getAllSlides, importSlideFromFile } from './services/slides';
+import type { SlideData } from './services/slides';
 import { 
   sessions, 
   diagnosticQuestions, 
@@ -78,6 +82,12 @@ const VideoIcon = () => (
 const RefreshIcon = () => (
   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+  </svg>
+);
+
+const SlideIcon = () => (
+  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
   </svg>
 );
 
@@ -1761,9 +1771,20 @@ export default function App() {
     return window.matchMedia('(prefers-color-scheme: dark)').matches;
   });
 
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'lessons' | 'progress' | 'schedule' | 'settings'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'lessons' | 'progress' | 'schedule' | 'settings' | 'slide'>('slide');
+  
+  // Slide management state
+  const [slides, setSlides] = useState<SlideData[]>(() => {
+    initializeSlides();
+    return getAllSlides();
+  });
+  const [viewingSlide, setViewingSlide] = useState<SlideData | null>(null); // null = show library
+  const [slidePage, setSlidePage] = useState(1);
+  const [selectedText, setSelectedText] = useState('');
+  
   const [apiKey, setApiKey] = useState(() => localStorage.getItem('vlearn-gemini-api-key') || import.meta.env.VITE_GEMINI_API_KEY || '');
   const [chatQuery, setChatQuery] = useState('');
+  const [quizSlideContext, setQuizSlideContext] = useState<{ name: string; textContent: string } | null>(null);
 
   // AI Quiz state
   const [activeAIQuiz, setActiveAIQuiz] = useState<{
@@ -1785,6 +1806,22 @@ export default function App() {
     const saved = localStorage.getItem('vlearn-ai-quizzes-history');
     return saved ? JSON.parse(saved) : [];
   });
+  const [aiQuizWrongQuestions, setAiQuizWrongQuestions] = useState<any[]>([]);
+  const [chatQuizContext, setChatQuizContext] = useState<{
+    slideName: string;
+    slideContent: string;
+    wrongQuestions: any[];
+    quizTitle: string;
+  } | null>(null);
+  const [savedQuizzes, setSavedQuizzes] = useState<{
+    title: string;
+    questions: any[];
+    slideTitle: string;
+    createdAt: string;
+  }[]>(() => {
+    const saved = localStorage.getItem('vlearn-saved-quizzes');
+    return saved ? JSON.parse(saved) : [];
+  });
 
   const [confirmModal, setConfirmModal] = useState<{
     isOpen: boolean;
@@ -1803,6 +1840,27 @@ export default function App() {
   const handleApiKeyChange = (newKey: string) => {
     setApiKey(newKey);
     localStorage.setItem('vlearn-gemini-api-key', newKey);
+  };
+
+  // Slide management handlers
+  const handleSelectSlide = (slide: SlideData) => {
+    setViewingSlide(slide);
+    setSlidePage(1);
+    setSelectedText('');
+  };
+
+  const handleBackToLibrary = () => {
+    setViewingSlide(null);
+  };
+
+  const handleImportSlide = async (file: File) => {
+    try {
+      await importSlideFromFile(file);
+      setSlides(getAllSlides());
+    } catch (error) {
+      console.error('Failed to import slide:', error);
+      alert('Không thể nhập slide. Vui lòng thử lại.');
+    }
   };
 
   const handleLaunchAIQuiz = (quizData: any) => {
@@ -1858,14 +1916,18 @@ export default function App() {
   const handleAIQuizSubmit = () => {
     setAiQuizSubmitted(true);
     
-    // Calculate score
+    // Calculate score and track wrong questions
     let correct = 0;
+    const wrongQs: any[] = [];
     activeAIQuiz?.questions.forEach((q, idx) => {
       if (aiQuizAnswers[idx] === q.correctAnswer) {
         correct++;
+      } else {
+        wrongQs.push({ index: idx, question: q });
       }
     });
     const score = Math.round((correct / (activeAIQuiz?.questions?.length || 1)) * 100);
+    setAiQuizWrongQuestions(wrongQs);
 
     // Save to history
     const newHistoryItem = {
@@ -1880,6 +1942,30 @@ export default function App() {
 
   const handleAIQuizFinish = () => {
     setActiveAIQuiz(null);
+  };
+
+  const handleSaveQuiz = (quiz: { title: string; questions: any[]; slideTitle: string; createdAt: string }) => {
+    const existing = savedQuizzes.filter(q => q.title !== quiz.title || q.slideTitle !== quiz.slideTitle);
+    const updated = [quiz, ...existing].slice(0, 20);
+    setSavedQuizzes(updated);
+    localStorage.setItem('vlearn-saved-quizzes', JSON.stringify(updated));
+  };
+
+  const handleDeleteQuiz = (index: number) => {
+    const updated = savedQuizzes.filter((_, i) => i !== index);
+    setSavedQuizzes(updated);
+    localStorage.setItem('vlearn-saved-quizzes', JSON.stringify(updated));
+  };
+
+  const handleRequestQuizReview = () => {
+    if (!activeAIQuiz) return;
+    setChatQuizContext({
+      slideName: activeAIQuiz.title,
+      slideContent: '',
+      wrongQuestions: aiQuizWrongQuestions,
+      quizTitle: activeAIQuiz.title,
+    });
+    setChatQuery(`Tôi vừa làm quiz "${activeAIQuiz.title}" và có ${aiQuizWrongQuestions.length} câu sai. Hãy cho tôi chọn: (1) ôn toàn bộ nội dung slide, hay (2) chỉ ôn các câu sai?`);
   };
 
   const [state, setState] = useState<AppState>({
@@ -2161,6 +2247,7 @@ export default function App() {
   // Get step title
   const getStepTitle = () => {
     if (activeTab === 'dashboard') return 'Bảng điều khiển học tập';
+    if (activeTab === 'slide') return viewingSlide ? viewingSlide.name : 'Thư viện Slide';
     if (activeTab === 'lessons') return 'Quản lý bài học';
     if (activeTab === 'schedule') return 'Lịch học tập';
     if (activeTab === 'settings') return 'Cài đặt hệ thống';
@@ -2185,6 +2272,7 @@ export default function App() {
 
   const getStepSubtitle = () => {
     if (activeTab === 'dashboard') return 'Tổng quan tiến độ & thống kê học tập';
+    if (activeTab === 'slide') return viewingSlide ? `Trang ${slidePage} / ${viewingSlide.totalPages}` : `${slides.length} slide`;
     if (activeTab === 'lessons') return 'Nội dung chi tiết 6 ngày học AI Thực Chiến';
     if (activeTab === 'schedule') return 'Lịch trình & Đăng ký khung giờ học bù';
     if (activeTab === 'settings') return 'Cấu hình API Key & tuỳ chọn hiển thị';
@@ -2343,6 +2431,7 @@ export default function App() {
       <Sidebar>
         <div className="space-y-1.5">
           <NavItem icon={<HomeIcon />} label="Dashboard" active={activeTab === 'dashboard'} onClick={() => setActiveTab('dashboard')} />
+          <NavItem icon={<SlideIcon />} label="Slide" active={activeTab === 'slide'} onClick={() => setActiveTab('slide')} />
           <NavItem icon={<BookIcon />} label="Bài học" active={activeTab === 'lessons'} onClick={() => setActiveTab('lessons')} />
           <NavItem icon={<ChartIcon />} label="Tiến độ" active={activeTab === 'progress'} onClick={() => setActiveTab('progress')} badge="3/6" />
           <NavItem icon={<CalendarIcon />} label="Lịch học" active={activeTab === 'schedule'} onClick={() => setActiveTab('schedule')} />
@@ -2371,6 +2460,8 @@ export default function App() {
                     onAnswer={handleAIQuizAnswer}
                     onSubmit={handleAIQuizSubmit}
                     onBack={handleAIQuizFinish}
+                    wrongQuestions={aiQuizWrongQuestions}
+                    onRequestReview={handleRequestQuizReview}
                   />
                 </div>
               ) : (
@@ -2391,6 +2482,65 @@ export default function App() {
               <ScreenLessons onOpenChatWithQuery={setChatQuery} />
             ) : activeTab === 'schedule' ? (
               <ScreenSchedule />
+            ) : activeTab === 'slide' ? (
+              viewingSlide ? (
+                <div className="h-full flex flex-col animate-fadeIn">
+                  {/* Back button and Quiz button row */}
+                  <div className="mb-4 flex items-center gap-3">
+                    <button
+                      onClick={handleBackToLibrary}
+                      className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                      </svg>
+                      Quay lại danh sách slide
+                    </button>
+                    <div className="h-4 w-px bg-slate-300 dark:bg-slate-700"></div>
+                    <button
+                      onClick={() => setChatQuery(`Tạo quiz cho slide "${viewingSlide.name}"`)}
+                      className="flex items-center gap-2 px-3 py-1.5 text-sm bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 rounded-lg hover:bg-purple-200 dark:hover:bg-purple-900/50 transition-colors"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+                      </svg>
+                      Tạo Quiz
+                    </button>
+                  </div>
+                  <div className="flex-1 min-h-0 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden">
+                    <SlideViewer
+                      slide={viewingSlide}
+                      onPageChange={(page) => setSlidePage(page)}
+                      onTextSelect={setSelectedText}
+                      selectedText={selectedText}
+                    />
+                  </div>
+                </div>
+              ) : (
+                <div className="animate-fadeIn h-full">
+                  <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 h-[calc(100vh-220px)]">
+                    <SlideLibrary
+                      slides={slides}
+                      onSelectSlide={handleSelectSlide}
+                      onImportSlide={handleImportSlide}
+                      onOpenQuiz={(slideName) => {
+                        const slide = slides.find(s => s.name === slideName);
+                        if (slide) {
+                          setQuizSlideContext({ name: slide.name, textContent: slide.textContent });
+                        }
+                        setChatQuery(`Tạo quiz cho slide "${slideName}"`);
+                      }}
+                      savedQuizzesCount={savedQuizzes.reduce((acc, q) => {
+                        acc[q.slideTitle] = (acc[q.slideTitle] || 0) + 1;
+                        return acc;
+                      }, {} as Record<string, number>)}
+                      savedQuizzes={savedQuizzes}
+                      onLaunchQuiz={handleLaunchAIQuiz}
+                      onDeleteQuiz={handleDeleteQuiz}
+                    />
+                  </div>
+                </div>
+              )
             ) : (
               <ScreenSettings 
                 apiKey={apiKey} 
@@ -2408,6 +2558,14 @@ export default function App() {
         onLaunchQuiz={handleLaunchAIQuiz} 
         chatQuery={chatQuery}
         onClearChatQuery={() => setChatQuery('')}
+        slideContext={activeTab === 'slide' && viewingSlide ? viewingSlide.textContent : undefined}
+        slideTitle={activeTab === 'slide' && viewingSlide ? viewingSlide.name : undefined}
+        savedQuizzes={savedQuizzes}
+        onSaveQuiz={handleSaveQuiz}
+        onDeleteQuiz={handleDeleteQuiz}
+        quizSlideContext={quizSlideContext}
+        chatQuizContext={chatQuizContext}
+        onClearChatQuizContext={() => setChatQuizContext(null)}
       />
 
       {/* Custom Confirmation Modal */}
