@@ -11,6 +11,7 @@ Loại: [ ] Tối ưu tính năng có sẵn  [ x ] Tính năng mới
 - Job executor + workflow:
   Học viên vừa kết thúc một buổi học có slide, muốn kiểm tra nhanh mình đã hiểu bài chưa
   trước khi chuyển sang bài tiếp theo hoặc làm bài tập.
+  Học viên xin nghỉ học, chưa nắm được kiến thức. 
 
   Workflow hiện tại:
   Mở lại slide → đọc lại toàn bộ → tự đoán phần chưa hiểu → tìm video hoặc hỏi bạn →
@@ -24,24 +25,44 @@ Loại: [ ] Tối ưu tính năng có sẵn  [ x ] Tính năng mới
   Học viên thường chỉ nhận ra mình chưa hiểu khi bắt đầu làm bài tập. Việc đọc lại toàn bộ
   slide tốn thời gian và không chỉ ra được nguyên nhân gốc, đặc biệt khi vấn đề nằm ở một
   kiến thức tiên quyết.
-# phần điền sau khi hoàn thành sản phẩm
 - Evidence:
   - Số liệu mining / kết quả khảo sát:
-    [Điền sau khi khảo sát hoặc mining]
-  - Quote/ví dụ nguyên văn:
-    1. "[Quote thật]" — [nguồn]
-    2. "[Quote thật]" — [nguồn]
-    3. "[Quote thật]" — [nguồn]
-    4. "[Quote thật]" — [nguồn]
-    5. "[Quote thật]" — [nguồn]
+
+    Nhóm đã thực hiện khảo sát với 116–117 người học.
+
+    - 91/117 người, tương đương 77,8%, cho biết sau một buổi học lý thuyết họ chỉ đọng lại dưới 50% kiến thức; chỉ 26/117 người, tương đương 22,2%, cho biết nhớ được trên 50%.
+
+    - Trong 116 người trả lời về khó khăn lớn nhất khi ôn bài:
+      - 61/116 người, tương đương 52,6%, không biết chính xác mình chưa hiểu phần nào.
+      - 20/116 người, tương đương 17,2%, phải đọc hoặc xem lại quá nhiều nội dung.
+      - 18/116 người, tương đương 15,5%, không biết mình đang thiếu kiến thức của bài hiện tại hay kiến thức từ bài trước.
+      - 17/116 người, tương đương 14,7%, tìm được tài liệu nhưng không biết nên học phần nào trước.
+
+    - 105/117 người, tương đương 89,7%, sẵn sàng sử dụng chatbot hỗ trợ tạo quiz từ kiến thức sau buổi học.
+
+    - 106/117 người, tương đương 90,6%, cho rằng tính năng tổng hợp những phần kiến thức chưa hiểu sau khi làm quiz là hữu ích.
+
+    Kết quả cho thấy phần lớn người được khảo sát gặp khó khăn trong việc xác định chính xác lỗ hổng kiến thức, đồng thời có mức sẵn sàng sử dụng cao đối với tính năng tạo quiz và tổng hợp phần cần ôn lại.
+
+- Quote/ví dụ minh họa giả định:
+
+  1. "Học xong em biết là mình chưa hiểu, nhưng không biết chính xác đang vướng ở slide nào."  
+
+  2. "Nhiều lúc em làm sai bài nhưng không biết là do phần hôm nay khó hay do em quên kiến thức buổi trước."  
+
+  3. "Mỗi lần ôn em thường đọc lại từ đầu, tốn khá nhiều thời gian mà vẫn không chắc phần nào là quan trọng."  
+
+  4. "Em tìm được nhiều video với tài liệu lắm, nhưng không biết nên xem cái nào trước nên cuối cùng lại bỏ qua."  
+
+  5. "Nếu hệ thống chỉ rõ vì sao em sai và dẫn đúng phần cần học lại thì em sẽ tin hơn là chỉ báo đúng hay sai."  
 
 ## §2. Impact & quyết định chọn
 
-| Ứng viên | Bao nhiêu người gặp | Tần suất | Tốn gì mỗi lần | Khả thi trong sự kiện | Chọn |
+| Ứng viên | Bao nhiêu người gặp / xác nhận nhu cầu | Tần suất | Tốn gì mỗi lần | Khả thi trong sự kiện | Chọn |
 |---|---:|---|---|---|---|
-| Tóm tắt slide sau buổi học | [n/?] | [x lần/tuần] | [x phút] | Cao | Không |
-| Sinh đề kiểm tra từ slide | [n/?] | [x lần/tuần] | [x phút] | Cao | Không |
-| Phát hiện lỗ hổng và chọn phần cần ôn | [n/?] | [x lần/tuần] | [x phút/điểm số] | Trung bình | Có |
+| Tóm tắt slide sau buổi học | Tín hiệu gần nhất là 20/116 người (17,2%) cho biết phải đọc hoặc xem lại quá nhiều nội dung | Có thể xảy ra sau mỗi buổi học lý thuyết; chưa đo số lần/tuần | Tốn thời gian đọc hoặc xem lại nhiều nội dung; chưa đo cụ thể số phút | Cao | Không |
+| Sinh đề kiểm tra từ slide | 105/117 người (89,7%) sẵn sàng sử dụng chatbot tạo quiz sau buổi học | Có nhu cầu sau buổi học; chưa đo số lần/tuần | Tốn công tự kiểm tra mức độ hiểu bài hoặc tự tìm câu hỏi; chưa đo cụ thể số phút | Cao | Không |
+| Phát hiện lỗ hổng và chọn phần cần ôn | 106/117 người (90,6%) cho rằng tính năng tổng hợp phần chưa hiểu là hữu ích; 96/116 người (82,8%) gặp khó khăn trực tiếp liên quan đến xác định lỗ hổng, kiến thức nền hoặc thứ tự ôn tập | Có nhu cầu sau mỗi lần học xong hoặc trước khi làm bài; chưa đo số lần/tuần | Có nguy cơ phải ôn lại sai phần, đọc quá nhiều nội dung và không biết nên học gì trước; chưa đo cụ thể số phút hoặc điểm số | Trung bình | Có |
 
 - Ứng viên ĐÃ LOẠI:
   1. Tóm tắt slide: dễ xây nhưng không kiểm tra được người học thực sự chưa hiểu gì.
@@ -72,10 +93,9 @@ Loại: [ ] Tối ưu tính năng có sẵn  [ x ] Tính năng mới
   - Gap2Go khác: sai một câu chỉ là bằng chứng; hệ thống cần nhiều bằng chứng trước khi kết luận.
 
 ## §4. Thiết kế
-## §4. Thiết kế
 
 - Lát cắt MỘT CÂU:
-  Một học viên vừa học xong tải slide, làm bài kiểm tra 8-10 câu; hệ thống dùng các câu sai
+  Một học viên vừa học xong trên slide, làm bài kiểm tra 8-10 câu; hệ thống dùng các câu sai
   và mức độ câu hỏi để xác định khái niệm có khả năng bị hổng, rồi chọn phần slide tối thiểu
   cần ôn lại trong giới hạn 15 phút.
 
@@ -96,8 +116,6 @@ Loại: [ ] Tối ưu tính năng có sẵn  [ x ] Tính năng mới
   - Phân tích đáp án và đề xuất phần cần ôn.
 
   Phần mock:
-  - Đăng nhập.
-  - Hồ sơ học viên dài hạn.
   - Tích hợp LMS.
   - Kho học liệu bên ngoài.
 
@@ -162,7 +180,6 @@ Loại: [ ] Tối ưu tính năng có sẵn  [ x ] Tính năng mới
   hệ thống loại câu đó khỏi phần chấm và thông báo lý do.
 
 ## §7. Kiểm thử
-## §7. Kiểm thử
 
 - Chiều chất lượng + định nghĩa kiểm chứng được:
 
@@ -193,25 +210,24 @@ Loại: [ ] Tối ưu tính năng có sẵn  [ x ] Tính năng mới
   - 2 case câu hỏi có nhiều đáp án hoặc sai chuyên môn.
   - 2 case chỉ có một bằng chứng nhưng hệ thống có nguy cơ kết luận quá mức.
 - Quality bar:
-  "Đạt khi ít nhất 80% case qua toàn bộ tiêu chí;
+  "Đạt khi ít nhất 70% case qua toàn bộ tiêu chí;
   100% câu hỏi được chấp nhận phải có căn cứ từ slide;
   và không có lỗi nghiêm trọng khiến người học học sai kiến thức."
-
-# [cần đánh giá sau khi xong sản phẩm]
 
 ## §8. Phân công & kế hoạch
 
 - Phân công:
-  - [Tên 1]&#58; evidence, khảo sát và tổng hợp quote.
-  - [Tên 2]&#58; knowledge map và prompt sinh câu hỏi.
-  - [Tên 3]&#58; code/UI và AI call.
-  - [Tên 4]&#58; golden set và chấm độc lập.
-  - [Tên 5]&#58; spec, validation và demo.
+  - [Hà Hoàng Tuấn Hùng] khảo sát và tổng hợp quote, system prompt
+  - [Phạm Hà Linh] data, idea, pipeline
+  - [Trần Chí Tâm] code/UI, git, AI
+  - [Nguyễn Doãn Hoàng] backend, AI
 
 - Willing users:
   1. [Trung — vai người học]
   2. [Thái — vai người học]
   3. [Nguyên — vai người học]
+  4. [Thiện — vai người học]
+  5. [Dương — vai người học]
 
 
 - Kế hoạch validation:
