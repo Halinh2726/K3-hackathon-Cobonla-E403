@@ -1,6 +1,14 @@
 import { useEffect, useState } from 'react';
 import { Sidebar, NavItem } from './components/Sidebar';
 import { Header } from './components/Header';
+import { Chatbot } from './components/Chatbot';
+import {
+  ScreenDashboard,
+  ScreenLessons,
+  ScreenSchedule,
+  ScreenSettings,
+  ScreenAIQuiz
+} from './components/Screens';
 import { 
   sessions, 
   diagnosticQuestions, 
@@ -1752,6 +1760,128 @@ export default function App() {
 
     return window.matchMedia('(prefers-color-scheme: dark)').matches;
   });
+
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'lessons' | 'progress' | 'schedule' | 'settings'>('dashboard');
+  const [apiKey, setApiKey] = useState(() => localStorage.getItem('vlearn-gemini-api-key') || import.meta.env.VITE_GEMINI_API_KEY || '');
+  const [chatQuery, setChatQuery] = useState('');
+
+  // AI Quiz state
+  const [activeAIQuiz, setActiveAIQuiz] = useState<{
+    title: string;
+    questions: {
+      question: string;
+      options: string[];
+      correctAnswer: number;
+      hint?: string;
+    }[];
+  } | null>(null);
+  const [aiQuizAnswers, setAiQuizAnswers] = useState<Record<number, number>>({});
+  const [aiQuizSubmitted, setAiQuizSubmitted] = useState(false);
+  const [aiQuizHistory, setAiQuizHistory] = useState<{
+    title: string;
+    date: string;
+    score: number;
+  }[]>(() => {
+    const saved = localStorage.getItem('vlearn-ai-quizzes-history');
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  const [confirmModal, setConfirmModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+    onCancel: () => void;
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: () => {},
+    onCancel: () => {}
+  });
+
+  const handleApiKeyChange = (newKey: string) => {
+    setApiKey(newKey);
+    localStorage.setItem('vlearn-gemini-api-key', newKey);
+  };
+
+  const handleLaunchAIQuiz = (quizData: any) => {
+    const hasExistingProgress = activeAIQuiz?.title === quizData.title && Object.keys(aiQuizAnswers).length > 0 && !aiQuizSubmitted;
+    
+    if (hasExistingProgress) {
+      setConfirmModal({
+        isOpen: true,
+        title: 'Tiếp tục làm bài?',
+        message: `Bạn đang có bài làm dở dang cho bài trắc nghiệm "${quizData.title}".\n\nBạn có muốn tiếp tục làm tiếp không, hay muốn xóa đi và làm mới từ đầu?`,
+        onConfirm: () => {
+          setActiveTab('progress');
+        },
+        onCancel: () => {
+          setActiveAIQuiz(quizData);
+          setAiQuizAnswers({});
+          setAiQuizSubmitted(false);
+          setActiveTab('progress');
+        }
+      });
+      return;
+    }
+
+    const hasCompletedBefore = aiQuizHistory.some(h => h.title === quizData.title);
+    if (hasCompletedBefore) {
+      setConfirmModal({
+        isOpen: true,
+        title: 'Luyện tập lại?',
+        message: `Bạn đã từng hoàn thành bài trắc nghiệm "${quizData.title}" trước đây.\n\nBạn có muốn làm mới lại từ đầu để ôn tập không?`,
+        onConfirm: () => {
+          setActiveAIQuiz(quizData);
+          setAiQuizAnswers({});
+          setAiQuizSubmitted(false);
+          setActiveTab('progress');
+        },
+        onCancel: () => {
+          setActiveTab('progress');
+        }
+      });
+      return;
+    }
+
+    setActiveAIQuiz(quizData);
+    setAiQuizAnswers({});
+    setAiQuizSubmitted(false);
+    setActiveTab('progress'); // Redirect to Progress tab
+  };
+
+  const handleAIQuizAnswer = (qIndex: number, choiceIndex: number) => {
+    setAiQuizAnswers(prev => ({ ...prev, [qIndex]: choiceIndex }));
+  };
+
+  const handleAIQuizSubmit = () => {
+    setAiQuizSubmitted(true);
+    
+    // Calculate score
+    let correct = 0;
+    activeAIQuiz?.questions.forEach((q, idx) => {
+      if (aiQuizAnswers[idx] === q.correctAnswer) {
+        correct++;
+      }
+    });
+    const score = Math.round((correct / (activeAIQuiz?.questions?.length || 1)) * 100);
+
+    // Save to history
+    const newHistoryItem = {
+      title: activeAIQuiz!.title,
+      date: new Date().toLocaleString('vi-VN'),
+      score: score,
+    };
+    const updatedHistory = [newHistoryItem, ...aiQuizHistory];
+    setAiQuizHistory(updatedHistory);
+    localStorage.setItem('vlearn-ai-quizzes-history', JSON.stringify(updatedHistory));
+  };
+
+  const handleAIQuizFinish = () => {
+    setActiveAIQuiz(null);
+  };
+
   const [state, setState] = useState<AppState>({
     currentStep: 'setup',
     selectedSession: null,
@@ -2030,6 +2160,14 @@ export default function App() {
 
   // Get step title
   const getStepTitle = () => {
+    if (activeTab === 'dashboard') return 'Bảng điều khiển học tập';
+    if (activeTab === 'lessons') return 'Quản lý bài học';
+    if (activeTab === 'schedule') return 'Lịch học tập';
+    if (activeTab === 'settings') return 'Cài đặt hệ thống';
+    
+    // Tab progress
+    if (activeAIQuiz) return `Luyện tập AI: ${activeAIQuiz.title}`;
+    
     switch (state.currentStep) {
       case 'setup': return 'Thiết lập phiên học bù';
       case 'diagnostic': return 'Diagnostic Test';
@@ -2043,6 +2181,17 @@ export default function App() {
       case 'post-check-result': return 'Kết quả Post-Check';
       default: return '';
     }
+  };
+
+  const getStepSubtitle = () => {
+    if (activeTab === 'dashboard') return 'Tổng quan tiến độ & thống kê học tập';
+    if (activeTab === 'lessons') return 'Nội dung chi tiết 6 ngày học AI Thực Chiến';
+    if (activeTab === 'schedule') return 'Lịch trình & Đăng ký khung giờ học bù';
+    if (activeTab === 'settings') return 'Cấu hình API Key & tuỳ chọn hiển thị';
+    
+    // Tab progress
+    if (activeAIQuiz) return 'Trắc nghiệm thông minh do AI Agent biên soạn';
+    return state.selectedSession ? `${state.selectedSession.title} • Ngày ${state.selectedSession.day}` : undefined;
   };
 
   // Navigation handlers
@@ -2189,36 +2338,114 @@ export default function App() {
   };
 
   return (
-    <div className={`${isDarkMode ? 'dark' : ''} flex min-h-screen bg-slate-50 transition-colors duration-200`}>
+    <div className={`${isDarkMode ? 'dark' : ''} flex min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 transition-colors duration-200`}>
       {/* Sidebar */}
       <Sidebar>
         <div className="space-y-1.5">
-          <NavItem icon={<HomeIcon />} label="Dashboard" />
-          <NavItem icon={<BookIcon />} label="Bài học" />
-          <NavItem icon={<ChartIcon />} label="Tiến độ" active badge="3/6" />
-          <NavItem icon={<CalendarIcon />} label="Lịch học" />
-          <NavItem icon={<SettingsIcon />} label="Cài đặt" />
+          <NavItem icon={<HomeIcon />} label="Dashboard" active={activeTab === 'dashboard'} onClick={() => setActiveTab('dashboard')} />
+          <NavItem icon={<BookIcon />} label="Bài học" active={activeTab === 'lessons'} onClick={() => setActiveTab('lessons')} />
+          <NavItem icon={<ChartIcon />} label="Tiến độ" active={activeTab === 'progress'} onClick={() => setActiveTab('progress')} badge="3/6" />
+          <NavItem icon={<CalendarIcon />} label="Lịch học" active={activeTab === 'schedule'} onClick={() => setActiveTab('schedule')} />
+          <NavItem icon={<SettingsIcon />} label="Cài đặt" active={activeTab === 'settings'} onClick={() => setActiveTab('settings')} />
         </div>
       </Sidebar>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col bg-slate-50 dark:bg-slate-950">
         <Header 
           title={getStepTitle()}
-          subtitle={state.selectedSession ? `${state.selectedSession.title} • Ngày ${state.selectedSession.day}` : undefined}
+          subtitle={getStepSubtitle()}
           isDarkMode={isDarkMode}
           onToggleTheme={() => setIsDarkMode(prev => !prev)}
         />
         
         <main className="flex-1 p-6 overflow-auto">
-          <div className="max-w-2xl mx-auto">
-            {getBreadcrumb()}
-            <div className="animate-fadeIn">
-              {renderStep()}
-            </div>
+          <div className="max-w-6xl mx-auto w-full">
+            {activeTab === 'progress' ? (
+              activeAIQuiz ? (
+                <div className="w-full">
+                  <ScreenAIQuiz
+                    quiz={activeAIQuiz}
+                    answers={aiQuizAnswers}
+                    submitted={aiQuizSubmitted}
+                    onAnswer={handleAIQuizAnswer}
+                    onSubmit={handleAIQuizSubmit}
+                    onBack={handleAIQuizFinish}
+                  />
+                </div>
+              ) : (
+                <div className="max-w-3xl mx-auto">
+                  {getBreadcrumb()}
+                  <div className="animate-fadeIn">
+                    {renderStep()}
+                  </div>
+                </div>
+              )
+            ) : activeTab === 'dashboard' ? (
+              <ScreenDashboard 
+                onSwitchTab={setActiveTab}
+                aiQuizHistory={aiQuizHistory}
+                diagnosticScore={state.diagnosticResult ? state.diagnosticResult.overallScore : null}
+              />
+            ) : activeTab === 'lessons' ? (
+              <ScreenLessons onOpenChatWithQuery={setChatQuery} />
+            ) : activeTab === 'schedule' ? (
+              <ScreenSchedule />
+            ) : (
+              <ScreenSettings 
+                apiKey={apiKey} 
+                onApiKeyChange={handleApiKeyChange}
+                isDarkMode={isDarkMode}
+                onToggleTheme={() => setIsDarkMode(prev => !prev)}
+              />
+            )}
           </div>
         </main>
       </div>
+
+      {/* AI Tutor Chatbot Overlay */}
+      <Chatbot 
+        onLaunchQuiz={handleLaunchAIQuiz} 
+        chatQuery={chatQuery}
+        onClearChatQuery={() => setChatQuery('')}
+      />
+
+      {/* Custom Confirmation Modal */}
+      {confirmModal.isOpen && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm animate-fadeIn">
+          <div className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-2xl space-y-4 animate-scaleUp">
+            <div className="flex items-center gap-3 text-blue-600 dark:text-blue-400">
+              <span className="text-2xl">📋</span>
+              <h3 className="font-extrabold text-base text-slate-900 dark:text-slate-100">{confirmModal.title}</h3>
+            </div>
+            
+            <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed whitespace-pre-line">
+              {confirmModal.message}
+            </p>
+            
+            <div className="flex items-center justify-end gap-2.5 pt-2">
+              <button
+                onClick={() => {
+                  confirmModal.onCancel();
+                  setConfirmModal(prev => ({ ...prev, isOpen: false }));
+                }}
+                className="px-4 py-2 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-350 font-semibold text-xs rounded-xl transition-all"
+              >
+                Hủy bỏ
+              </button>
+              <button
+                onClick={() => {
+                  confirmModal.onConfirm();
+                  setConfirmModal(prev => ({ ...prev, isOpen: false }));
+                }}
+                className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs rounded-xl shadow-md transition-all"
+              >
+                Xác nhận
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
