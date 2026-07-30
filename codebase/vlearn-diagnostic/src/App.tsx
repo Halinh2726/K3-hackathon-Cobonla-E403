@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Sidebar, NavItem } from './components/Sidebar';
 import { Header } from './components/Header';
 import { 
@@ -1744,6 +1744,14 @@ function ScreenPostCheckResult({
 
 // ============ MAIN APP ============
 export default function App() {
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    const savedTheme = localStorage.getItem('vlearn-theme');
+    if (savedTheme) {
+      return savedTheme === 'dark';
+    }
+
+    return window.matchMedia('(prefers-color-scheme: dark)').matches;
+  });
   const [state, setState] = useState<AppState>({
     currentStep: 'setup',
     selectedSession: null,
@@ -1763,6 +1771,10 @@ export default function App() {
     postCheckReviewAnswers: {},
     isEditingGaps: false,
   });
+
+  useEffect(() => {
+    localStorage.setItem('vlearn-theme', isDarkMode ? 'dark' : 'light');
+  }, [isDarkMode]);
 
   // Handlers
   const handleSessionChange = (session: Session) => {
@@ -2177,7 +2189,7 @@ export default function App() {
   };
 
   return (
-    <div className="flex min-h-screen bg-slate-50">
+    <div className={`${isDarkMode ? 'dark' : ''} flex min-h-screen bg-slate-50 transition-colors duration-200`}>
       {/* Sidebar */}
       <Sidebar>
         <div className="space-y-1.5">
@@ -2194,6 +2206,8 @@ export default function App() {
         <Header 
           title={getStepTitle()}
           subtitle={state.selectedSession ? `${state.selectedSession.title} • Ngày ${state.selectedSession.day}` : undefined}
+          isDarkMode={isDarkMode}
+          onToggleTheme={() => setIsDarkMode(prev => !prev)}
         />
         
         <main className="flex-1 p-6 overflow-auto">
