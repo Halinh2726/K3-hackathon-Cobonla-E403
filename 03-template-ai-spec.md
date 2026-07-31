@@ -3,7 +3,7 @@
 > Cấu trúc phủ đúng "SPEC 8 phần" của chương trình: Bằng chứng (§1-§2) · Lát cắt (§4) · Canvas (đính kèm CP1) · Augment/Automate (§4) · 4 đường đi của trải nghiệm (§6) · Kiểu lỗi (§5) · Kiểm thử (§7) · Phân công (§8). Hướng dẫn viết từng mục: `02-guide.md`.
 
 ```markdown
-# AI SPEC — [Sau một buổi học, Gap2Go tạo bài kiểm tra ngắn từ slide, dùng kết quả để xác định khái niệm người học có khả năng chưa hiểu và đề xuất đúng phần slide cần ôn lại trong thời gian giới hạn.] · Nhóm [Cobonla] · Zone [2]
+# AI SPEC — [Sau một buổi học, Gap2Go tạo bài kiểm tra ngắn từ slide, dùng kết quả để xác định khái niệm người học có khả năng chưa hiểu và đề xuất đúng phần slide cần ôn lại trong thời gian giới hạn.] · Nhóm [Cobonla] · Zone [5]
 Hướng: [ x ] A — VLearn  [ ] B — Trợ lý Học viên  [ ] C — Làn mở
 Loại: [ ] Tối ưu tính năng có sẵn  [ x ] Tính năng mới
 
