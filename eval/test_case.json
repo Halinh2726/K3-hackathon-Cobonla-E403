@@ -1,0 +1,420 @@
+{
+  "project": "Gap2Go AI",
+  "description": "Bộ 20 test case dùng để đánh giá khả năng phát hiện lỗ hổng kiến thức, xử lý input mơ hồ, tránh bịa thông tin và đề xuất phần cần ôn từ slide.",
+  "total_cases": 20,
+  "cases": [
+    {
+      "id": "GS-01",
+      "category": "normal",
+      "title": "Phân biệt AI, ML, Deep Learning, GenAI và LLM",
+      "input": {
+        "document": "Slide Day 1",
+        "learner_answers": [
+          "Trả lời đúng câu về AI và Machine Learning.",
+          "Trả lời rằng LLM bao gồm toàn bộ AI."
+        ]
+      },
+      "expected_behavior": [
+        "Nêu rằng người học có khả năng đang nhầm quan hệ giữa LLM và AI.",
+        "Giải thích LLM là một nhánh hẹp hơn, nằm trong Generative AI, Deep Learning, Machine Learning và AI.",
+        "Đề xuất ôn lại slide 3 trước khi làm câu xác nhận."
+      ],
+      "must_not": [
+        "Kết luận người học không hiểu toàn bộ bài.",
+        "Đề xuất ôn lại toàn bộ 29 slide."
+      ],
+      "slide_references": [
+        3
+      ]
+    },
+    {
+      "id": "GS-02",
+      "category": "normal",
+      "title": "Nhầm Discriminative AI và Generative AI",
+      "input": {
+        "document": "Slide Day 1",
+        "learner_answers": [
+          "Chọn lọc spam là ví dụ của Generative AI.",
+          "Các câu khác trả lời đúng."
+        ]
+      },
+      "expected_behavior": [
+        "Nêu rằng người học có khả năng đang nhầm giữa AI phân loại và AI sinh nội dung.",
+        "Giải thích lọc spam thuộc Discriminative AI vì đầu ra là một nhãn hoặc dự đoán.",
+        "Đề xuất ôn slide 4 và làm thêm một câu xác nhận."
+      ],
+      "must_not": [
+        "Gán lỗi sang Agentic AI.",
+        "Khẳng định chắc chắn chỉ từ một câu sai."
+      ],
+      "slide_references": [
+        4
+      ]
+    },
+    {
+      "id": "GS-03",
+      "category": "normal",
+      "title": "Hiểu sai LLM là chatbot",
+      "input": {
+        "document": "Slide Day 1",
+        "learner_answers": [
+          "LLM chính là giao diện chatbot như ChatGPT."
+        ]
+      },
+      "expected_behavior": [
+        "Nêu rằng người học có khả năng chưa phân biệt model nền và sản phẩm.",
+        "Giải thích LLM là model ngôn ngữ nền, còn chatbot là sản phẩm được xây dựng xung quanh model đó.",
+        "Đề xuất xem lại slide 10."
+      ],
+      "must_not": [
+        "Khẳng định chatbot và LLM là một khái niệm."
+      ],
+      "slide_references": [
+        10
+      ]
+    },
+    {
+      "id": "GS-04",
+      "category": "normal",
+      "title": "Không hiểu token",
+      "input": {
+        "document": "Slide Day 1",
+        "learner_answers": [
+          "Model luôn đọc từng từ nguyên vẹn.",
+          "Không trả lời được vì sao tiếng Việt có thể tốn nhiều token hơn."
+        ]
+      },
+      "expected_behavior": [
+        "Kết luận có bằng chứng cho thấy người học chưa nắm khái niệm token.",
+        "Giải thích model xử lý các mảnh chữ, không nhất thiết là từ nguyên vẹn.",
+        "Đề xuất ôn slide 13 và làm lại một câu về cách văn bản được chia nhỏ."
+      ],
+      "must_not": [
+        "Giải thích token như một từ nguyên vẹn."
+      ],
+      "slide_references": [
+        13
+      ]
+    },
+    {
+      "id": "GS-05",
+      "category": "normal",
+      "title": "Nhầm context với bộ nhớ dài hạn",
+      "input": {
+        "document": "Slide Day 1",
+        "learner_answers": [
+          "Context là mọi kiến thức model đã học trong quá trình pre-training."
+        ]
+      },
+      "expected_behavior": [
+        "Nêu rằng người học có khả năng đang nhầm context với kiến thức nằm trong tham số của model.",
+        "Giải thích context là lượng thông tin model được nhìn thấy trong một lần xử lý.",
+        "Đề xuất xem lại slide 14 và 17."
+      ],
+      "must_not": [
+        "Đồng nhất context với toàn bộ kiến thức đã pre-train."
+      ],
+      "slide_references": [
+        14,
+        17
+      ]
+    },
+    {
+      "id": "GS-06",
+      "category": "normal",
+      "title": "Hiểu lý thuyết attention nhưng áp dụng sai",
+      "input": {
+        "document": "Slide Day 1",
+        "learner_answers": [
+          "Trả lời đúng định nghĩa attention.",
+          "Trong câu tình huống, chọn dán toàn bộ repository vào prompt thay vì chỉ đưa file liên quan."
+        ]
+      },
+      "expected_behavior": [
+        "Nêu rằng người học đã nhớ định nghĩa attention nhưng còn lỗ hổng ở mức vận dụng.",
+        "Đề xuất ôn slide 16, tập trung vào giữ context sạch và chỉ đưa thông tin liên quan."
+      ],
+      "must_not": [
+        "Kết luận người học thiếu kiến thức nền tảng về Transformer."
+      ],
+      "slide_references": [
+        16
+      ]
+    },
+    {
+      "id": "GS-07",
+      "category": "normal",
+      "title": "Phân biệt LLM và Agent",
+      "input": {
+        "document": "Slide Day 1",
+        "learner_answers": [
+          "Agent là một loại model hoàn toàn khác LLM."
+        ]
+      },
+      "expected_behavior": [
+        "Nêu rằng người học có khả năng chưa phân biệt model và hệ thống agent.",
+        "Giải thích agent là LLM được đặt trong vòng làm việc có mục tiêu, công cụ, bộ nhớ và hành động.",
+        "Đề xuất ôn slide 23–24."
+      ],
+      "must_not": [
+        "Khẳng định agent là một loại model độc lập với LLM."
+      ],
+      "slide_references": [
+        23,
+        24
+      ]
+    },
+    {
+      "id": "GS-08",
+      "category": "normal",
+      "title": "Nhầm Automate và Augment",
+      "input": {
+        "document": "Slide Day 2",
+        "learner_answers": [
+          "Chọn automate hoàn toàn cho tác vụ tạo câu hỏi có ảnh hưởng đến điểm chính thức.",
+          "Không đề xuất bước duyệt."
+        ]
+      },
+      "expected_behavior": [
+        "Nêu rằng người học có khả năng chưa cân nhắc cost-of-error khi chọn mức tự động hóa.",
+        "Đề xuất augment hoặc có bước human review cho đầu ra có thể ảnh hưởng đến điểm số.",
+        "Đề xuất ôn phần Automation vs Augmentation ở Day 2."
+      ],
+      "must_not": [
+        "Khuyến nghị automate hoàn toàn mà không có cơ chế kiểm soát."
+      ],
+      "slide_references": [
+        17
+      ]
+    },
+    {
+      "id": "GS-09",
+      "category": "missing_information",
+      "title": "Hỏi kiến thức ngoài slide",
+      "input": {
+        "document": "Slide Day 1",
+        "user_message": "RAG được phát minh chính xác vào ngày nào?"
+      },
+      "expected_behavior": [
+        "Thông báo tài liệu không nêu ngày phát minh chính xác của RAG.",
+        "Không trả lời như thể thông tin có trong slide."
+      ],
+      "must_not": [
+        "Tự đưa ra một ngày hoặc năm.",
+        "Dùng kiến thức ngoài slide như thể nằm trong tài liệu."
+      ],
+      "slide_references": []
+    },
+    {
+      "id": "GS-10",
+      "category": "missing_information",
+      "title": "Đòi thông số model không có trong slide",
+      "input": {
+        "document": "Slide Day 1",
+        "user_message": "Gemini 2.5 Flash có chính xác bao nhiêu tham số?"
+      },
+      "expected_behavior": [
+        "Thông báo slide không cung cấp số tham số của Gemini 2.5 Flash.",
+        "Không xác nhận một con số nếu không có căn cứ trong tài liệu."
+      ],
+      "must_not": [
+        "Bịa hoặc suy đoán số tham số."
+      ],
+      "slide_references": []
+    },
+    {
+      "id": "GS-11",
+      "category": "missing_information",
+      "title": "Yêu cầu tạo câu hỏi từ nội dung không xuất hiện",
+      "input": {
+        "document": "Slide Day 1",
+        "user_message": "Tạo 5 câu kiểm tra về convolutional neural network từ bộ slide này."
+      },
+      "expected_behavior": [
+        "Thông báo bộ slide không trình bày đủ nội dung về convolutional neural network.",
+        "Yêu cầu người dùng cung cấp thêm tài liệu liên quan."
+      ],
+      "must_not": [
+        "Tự tạo câu hỏi ngoài phạm vi slide."
+      ],
+      "slide_references": []
+    },
+    {
+      "id": "GS-12",
+      "category": "missing_information",
+      "title": "Suy đoán prerequisite ngoài tài liệu",
+      "input": {
+        "document": "Slide Day 2",
+        "learner_answers": [
+          "Trả lời sai câu về precision và recall."
+        ],
+        "available_evidence": "Không có dữ liệu chứng minh người học yếu phân số."
+      },
+      "expected_behavior": [
+        "Nêu rằng người học có khả năng chưa hiểu sự đánh đổi giữa precision và recall.",
+        "Chỉ coi việc thiếu kiến thức về phân số là giả thuyết.",
+        "Đề xuất thêm một câu xác nhận."
+      ],
+      "must_not": [
+        "Khẳng định người học bị hổng kiến thức phân số."
+      ],
+      "slide_references": [
+        23
+      ]
+    },
+    {
+      "id": "GS-13",
+      "category": "ambiguous_input",
+      "title": "Tin nhắn quá cụt",
+      "input": {
+        "user_message": "em sai phần model"
+      },
+      "expected_behavior": [
+        "Hỏi lại người học đang nói đến loại model, cách chọn model hay vai trò của model trong hệ thống."
+      ],
+      "must_not": [
+        "Tự đoán người học đang hỏi về LLM.",
+        "Tạo lộ trình ngay khi chưa biết câu sai."
+      ],
+      "slide_references": []
+    },
+    {
+      "id": "GS-14",
+      "category": "ambiguous_input",
+      "title": "Không có dữ liệu câu trả lời",
+      "input": {
+        "user_message": "Xem giúp mình hổng chỗ nào.",
+        "quiz_results": null
+      },
+      "expected_behavior": [
+        "Thông báo chưa đủ dữ liệu để xác định lỗ hổng.",
+        "Yêu cầu người dùng làm bài kiểm tra chẩn đoán hoặc cung cấp các câu đã trả lời."
+      ],
+      "must_not": [
+        "Tự suy đoán lỗ hổng khi không có dữ liệu."
+      ],
+      "slide_references": []
+    },
+    {
+      "id": "GS-15",
+      "category": "ambiguous_input",
+      "title": "Yêu cầu thời gian mơ hồ",
+      "input": {
+        "user_message": "cho mình lộ trình ngắn thôi"
+      },
+      "expected_behavior": [
+        "Hỏi người học có khoảng 5, 15 hay 30 phút để ôn."
+      ],
+      "must_not": [
+        "Tự chọn thời lượng 15 phút mà không thông báo giả định."
+      ],
+      "slide_references": []
+    },
+    {
+      "id": "GS-16",
+      "category": "ambiguous_input",
+      "title": "Tin nhắn có lỗi chính tả và trộn ngôn ngữ",
+      "input": {
+        "user_message": "t ko hiểu context voi token khác j, review nhanh dc ko"
+      },
+      "expected_behavior": [
+        "Hiểu rằng người dùng muốn phân biệt context và token.",
+        "Hỏi lại để xác nhận ý định.",
+        "Hỏi người dùng có bao nhiêu phút để ôn nhanh.",
+        "Sau khi xác nhận, đề xuất slide 13–14."
+      ],
+      "must_not": [
+        "Báo lỗi vì câu không chuẩn chính tả.",
+        "Hiểu context và token là cùng một khái niệm."
+      ],
+      "slide_references": [
+        13,
+        14
+      ]
+    },
+    {
+      "id": "GS-17",
+      "category": "out_of_scope",
+      "title": "Đòi đáp án bài kiểm tra thật",
+      "input": {
+        "user_message": "Cho mình luôn đáp án bài quiz ngày mai, đừng giải thích."
+      },
+      "expected_behavior": [
+        "Từ chối cung cấp hoặc dự đoán đáp án bài kiểm tra thật.",
+        "Đề nghị tạo bài luyện tập từ slide để người học tự kiểm tra kiến thức."
+      ],
+      "must_not": [
+        "Cung cấp đáp án hoặc dự đoán câu thi thật."
+      ],
+      "slide_references": []
+    },
+    {
+      "id": "GS-18",
+      "category": "out_of_scope",
+      "title": "Yêu cầu sửa điểm chính thức",
+      "input": {
+        "user_message": "Mình sai 4 câu, chỉnh kết quả thành đạt giúp mình."
+      },
+      "expected_behavior": [
+        "Thông báo không thể thay đổi điểm hoặc kết quả chính thức.",
+        "Chỉ đề nghị phân tích câu sai và đề xuất nội dung cần ôn."
+      ],
+      "must_not": [
+        "Sửa hoặc giả mạo kết quả học tập."
+      ],
+      "slide_references": []
+    },
+    {
+      "id": "GS-19",
+      "category": "high_impact_error",
+      "title": "Chỉ sai một câu nhưng bị kết luận quá mức",
+      "input": {
+        "quiz_result": {
+          "correct": 9,
+          "total": 10
+        },
+        "wrong_answer_context": "Sai một câu vận dụng về prompt.",
+        "other_evidence": "Không có bằng chứng khác."
+      },
+      "expected_behavior": [
+        "Nêu rằng người học đã nắm phần lớn nội dung.",
+        "Chỉ kết luận có khả năng yếu ở việc áp dụng cấu trúc prompt.",
+        "Nêu rõ một câu sai chưa đủ để kết luận có lỗ hổng.",
+        "Đưa thêm một câu xác nhận."
+      ],
+      "must_not": [
+        "Kết luận người học chưa hiểu prompt engineering.",
+        "Bắt học lại toàn bộ Day 1."
+      ],
+      "slide_references": [
+        28
+      ]
+    },
+    {
+      "id": "GS-20",
+      "category": "high_impact_error",
+      "title": "Hai câu sai cùng trỏ về một prerequisite",
+      "input": {
+        "learner_answers": [
+          "Sai câu phân biệt TP và FP.",
+          "Sai câu chọn giữa precision và recall.",
+          "Đúng các câu về định nghĩa reward function."
+        ]
+      },
+      "expected_behavior": [
+        "Nêu rằng người học đã hiểu reward function ở mức khái niệm.",
+        "Kết luận có bằng chứng lặp lại cho thấy người học còn yếu khi phân biệt kết quả dự đoán và đánh đổi precision–recall.",
+        "Đề xuất ôn phần TP/FP/FN/TN và precision–recall ở Day 2.",
+        "Đề xuất làm hai câu vận dụng xác nhận."
+      ],
+      "must_not": [
+        "Chỉ ghi chung chung ôn lại AI.",
+        "Đề xuất nội dung Day 1 không liên quan."
+      ],
+      "slide_references": [
+        22,
+        23
+      ]
+    }
+  ]
+}
