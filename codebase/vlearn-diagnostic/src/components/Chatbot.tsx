@@ -6,15 +6,45 @@ interface Message {
   role: 'user' | 'model';
   content: string;
   timestamp: Date;
+  actions?: {
+    label: string;
+    type: 'quiz-full' | 'quiz-wrong' | 'other';
+    value?: string;
+  }[];
+}
+
+interface SavedQuiz {
+  title: string;
+  questions: {
+    question: string;
+    options: string[];
+    correctAnswer: number;
+    hint?: string;
+  }[];
+  slideTitle: string;
+  createdAt: string;
 }
 
 interface ChatbotProps {
   onLaunchQuiz: (quizData: any) => void;
   chatQuery: string;
   onClearChatQuery: () => void;
+  slideContext?: string;
+  slideTitle?: string;
+  savedQuizzes: SavedQuiz[];
+  onSaveQuiz: (quiz: SavedQuiz) => void;
+  onDeleteQuiz: (index: number) => void;
+  quizSlideContext?: { name: string; textContent: string } | null;
+  chatQuizContext?: {
+    slideName: string;
+    slideContent: string;
+    wrongQuestions: any[];
+    quizTitle: string;
+  } | null;
+  onClearChatQuizContext?: () => void;
 }
 
-export function Chatbot({ onLaunchQuiz, chatQuery, onClearChatQuery }: ChatbotProps) {
+export function Chatbot({ onLaunchQuiz, chatQuery, onClearChatQuery, slideContext, slideTitle, savedQuizzes, onSaveQuiz, onDeleteQuiz, quizSlideContext, chatQuizContext, onClearChatQuizContext }: ChatbotProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>(() => {
     const saved = localStorage.getItem('vlearn-chat-history');
@@ -45,6 +75,20 @@ export function Chatbot({ onLaunchQuiz, chatQuery, onClearChatQuery }: ChatbotPr
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [attachedFile, setAttachedFile] = useState<{ name: string; mimeType: string; base64: string } | null>(null);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
+  const [showQuizHistory, setShowQuizHistory] = useState(false);
+  const [pendingReviewContext, setPendingReviewContext] = useState<{
+    slideName: string;
+    slideContent: string;
+    wrongQuestions: any[];
+    quizTitle: string;
+  } | null>(null);
+  const quizContextRef = useRef<{ name: string; textContent: string } | null>(null);
+  const quizReviewContextRef = useRef<{
+    slideName: string;
+    slideContent: string;
+    wrongQuestions: any[];
+    quizTitle: string;
+  } | null>(null);
 
   // Close chat when clicking outside of it
   useEffect(() => {
@@ -64,14 +108,22 @@ export function Chatbot({ onLaunchQuiz, chatQuery, onClearChatQuery }: ChatbotPr
     localStorage.setItem('vlearn-chat-history', JSON.stringify(messages));
   }, [messages]);
 
-  // Handle external query pre-fills (from Lesson tab clicks)
+  // Handle external query pre-fills (from Lesson tab clicks or SlideLibrary)
   useEffect(() => {
     if (chatQuery) {
       setIsOpen(true);
-      handleSendMessage(chatQuery);
+      quizContextRef.current = quizSlideContext || null;
+      if (chatQuizContext) {
+        quizReviewContextRef.current = chatQuizContext;
+        setPendingReviewContext(chatQuizContext);
+      }
+      handleSendMessage(chatQuery, undefined, quizSlideContext || undefined);
       onClearChatQuery();
+      if (chatQuizContext) {
+        onClearChatQuizContext?.();
+      }
     }
-  }, [chatQuery]);
+  }, [chatQuery, quizSlideContext, chatQuizContext]);
 
   // Scroll to bottom when messages list updates or chat opens
   useEffect(() => {
@@ -102,7 +154,7 @@ export function Chatbot({ onLaunchQuiz, chatQuery, onClearChatQuery }: ChatbotPr
     reader.readAsDataURL(file);
   };
 
-  const handleSendMessage = async (textToSend: string, overrideFile?: typeof attachedFile) => {
+  const handleSendMessage = async (textToSend: string, overrideFile?: typeof attachedFile, slideContextOverride?: { name: string; textContent: string }) => {
     const cleanText = textToSend.trim();
     const fileToUpload = overrideFile !== undefined ? overrideFile : attachedFile;
     if (!cleanText && !fileToUpload) return;
@@ -131,7 +183,26 @@ export function Chatbot({ onLaunchQuiz, chatQuery, onClearChatQuery }: ChatbotPr
         content: m.content,
       }));
 
-      const responseText = await askGemini(cleanText, apiHistory, fileToUpload || undefined);
+      const contextToUse = slideContextOverride ? slideContextOverride.textContent : (quizContextRef.current?.textContent || slideContext);
+      
+      // Build enhanced context with wrong questions if available
+      let fullContext = contextToUse || '';
+      if (quizReviewContextRef.current && quizReviewContextRef.current.wrongQuestions.length > 0) {
+        const wrongQsList = quizReviewContextRef.current.wrongQuestions
+          .map((wq: any) => `Câu ${wq.index + 1}: ${wq.question.question}`)
+          .join('\n');
+        fullContext = `${quizReviewContextRef.current.slideContent || ''}\n\n--- CÁC CÂU HỎI BỊ SAI TRONG BÀI QUIZ TRƯỚC ---\n${wrongQsList}`;
+      }
+      
+      // Check if in review mode
+      const isReviewMode = !!pendingReviewContext;
+      const reviewMode = isReviewMode && pendingReviewContext ? {
+        isReviewMode: true,
+        wrongQuestions: pendingReviewContext.wrongQuestions,
+        quizTitle: pendingReviewContext.quizTitle,
+      } : undefined;
+      
+      const responseText = await askGemini(cleanText, apiHistory, fileToUpload || undefined, fullContext, reviewMode);
 
       const aiMsg: Message = {
         id: Math.random().toString(),
@@ -171,7 +242,16 @@ export function Chatbot({ onLaunchQuiz, chatQuery, onClearChatQuery }: ChatbotPr
     ];
     setMessages(defaultWelcome);
     localStorage.removeItem('vlearn-chat-history');
+    // Clear all quiz-related contexts
+    quizContextRef.current = null;
+    quizReviewContextRef.current = null;
+    setPendingReviewContext(null);
     setShowClearConfirm(false);
+  };
+
+  // Save quiz to localStorage
+  const handleSaveQuiz = (quiz: SavedQuiz) => {
+    onSaveQuiz(quiz);
   };
 
   // Render message text, parsing and hiding XML quiz tags and replacing them with a custom button
@@ -191,6 +271,52 @@ export function Chatbot({ onLaunchQuiz, chatQuery, onClearChatQuery }: ChatbotPr
         console.error('Failed to parse quiz json:', e);
       }
 
+      const handleStartQuiz = () => {
+        // Validate quiz structure thoroughly
+        if (!parsedQuiz) {
+          alert('Quiz không hợp lệ. Vui lòng yêu cầu AI tạo lại quiz.');
+          return;
+        }
+        if (!parsedQuiz.title) {
+          alert('Quiz thiếu tiêu đề. Vui lòng yêu cầu AI tạo lại quiz.');
+          return;
+        }
+        if (!Array.isArray(parsedQuiz.questions) || parsedQuiz.questions.length === 0) {
+          alert('Quiz không có câu hỏi. Vui lòng yêu cầu AI tạo lại quiz.');
+          return;
+        }
+        // Validate each question has required fields
+        for (let i = 0; i < parsedQuiz.questions.length; i++) {
+          const q = parsedQuiz.questions[i];
+          if (!q.question || typeof q.question !== 'string') {
+            alert(`Câu ${i + 1} thiếu nội dung câu hỏi. Vui lòng yêu cầu AI tạo lại quiz.`);
+            return;
+          }
+          if (!Array.isArray(q.options) || q.options.length < 2) {
+            alert(`Câu ${i + 1} thiếu các lựa chọn. Vui lòng yêu cầu AI tạo lại quiz.`);
+            return;
+          }
+          if (typeof q.correctAnswer !== 'number' || q.correctAnswer < 0 || q.correctAnswer >= q.options.length) {
+            alert(`Câu ${i + 1} có đáp án không hợp lệ. Vui lòng yêu cầu AI tạo lại quiz.`);
+            return;
+          }
+        }
+        
+        // All validations passed - launch quiz
+        const titleToUse = quizContextRef.current?.name || slideTitle;
+        const newQuiz: SavedQuiz = {
+          title: parsedQuiz.title,
+          questions: parsedQuiz.questions,
+          slideTitle: titleToUse || 'Unknown',
+          createdAt: new Date().toLocaleString('vi-VN'),
+        };
+        handleSaveQuiz(newQuiz);
+        // Clear quiz context refs to prevent old context interference
+        quizContextRef.current = null;
+        quizReviewContextRef.current = null;
+        onLaunchQuiz(newQuiz);
+      };
+
       return (
         <div className="space-y-3">
           <div className="whitespace-pre-wrap">{textParts[0].trim()}</div>
@@ -199,7 +325,7 @@ export function Chatbot({ onLaunchQuiz, chatQuery, onClearChatQuery }: ChatbotPr
               <p className="text-xs text-purple-700 dark:text-purple-400 font-semibold">🤖 Đã tạo thành công bài trắc nghiệm!</p>
               <h4 className="font-bold text-sm text-slate-800 dark:text-slate-200">{parsedQuiz.title} ({parsedQuiz.questions?.length} câu)</h4>
               <button
-                onClick={() => onLaunchQuiz(parsedQuiz)}
+                onClick={handleStartQuiz}
                 className="w-full py-2 bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs rounded-xl shadow transition-colors flex items-center justify-center gap-1.5"
               >
                 📝 Bắt đầu làm Quiz
@@ -257,6 +383,16 @@ export function Chatbot({ onLaunchQuiz, chatQuery, onClearChatQuery }: ChatbotPr
               </div>
             </div>
             <div className="flex items-center gap-1.5">
+              {/* Quiz History Button */}
+              <button
+                onClick={() => setShowQuizHistory(!showQuizHistory)}
+                className={`p-1.5 rounded transition-colors text-white/95 ${showQuizHistory ? 'bg-white/20' : 'hover:bg-white/10'}`}
+                title="Xem lại các bài quiz đã tạo"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+                </svg>
+              </button>
               {/* Trash Icon */}
               <button
                 onClick={triggerClearHistory}
@@ -279,6 +415,52 @@ export function Chatbot({ onLaunchQuiz, chatQuery, onClearChatQuery }: ChatbotPr
               </button>
             </div>
           </div>
+
+          {/* Quiz History Panel */}
+          {showQuizHistory && (
+            <div className="border-t border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 max-h-48 overflow-y-auto">
+              {savedQuizzes.length === 0 ? (
+                <div className="p-4 text-center text-sm text-slate-500 dark:text-slate-400">
+                  Chưa có bài quiz nào được tạo.
+                </div>
+              ) : (
+                <div className="p-2 space-y-1.5">
+                  {savedQuizzes.map((quiz, idx) => (
+                    <div
+                      key={idx}
+                      className="flex items-center justify-between p-2.5 rounded-lg bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                    >
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-semibold text-slate-800 dark:text-slate-200 truncate">{quiz.title}</p>
+                        <p className="text-[10px] text-slate-500 dark:text-slate-400">{quiz.slideTitle} • {quiz.questions.length} câu</p>
+                        <p className="text-[9px] text-slate-400 dark:text-slate-500">{quiz.createdAt}</p>
+                      </div>
+                      <div className="flex gap-1 ml-2">
+                        <button
+                          onClick={() => {
+                            const quizData = { title: quiz.title, questions: quiz.questions };
+                            onLaunchQuiz(quizData);
+                            setShowQuizHistory(false);
+                          }}
+                          className="px-2.5 py-1 bg-purple-600 hover:bg-purple-700 text-white text-[10px] font-bold rounded-lg transition-colors"
+                        >
+                          Làm lại
+                        </button>
+                        <button
+                          onClick={() => {
+                            onDeleteQuiz(idx);
+                          }}
+                          className="px-2 py-1 bg-red-100 hover:bg-red-200 text-red-600 text-[10px] font-bold rounded-lg transition-colors"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Messages Area */}
           <div className="flex-1 p-4 overflow-y-auto space-y-4 bg-slate-50 dark:bg-slate-950/20">
