@@ -2498,7 +2498,10 @@ export default function App() {
                     </button>
                     <div className="h-4 w-px bg-slate-300 dark:bg-slate-700"></div>
                     <button
-                      onClick={() => setChatQuery(`Tạo quiz cho slide "${viewingSlide.name}"`)}
+                      onClick={() => {
+                        setQuizSlideContext({ name: viewingSlide.name, textContent: viewingSlide.textContent });
+                        setChatQuery(`Tạo quiz cho slide "${viewingSlide.name}"`);
+                      }}
                       className="flex items-center gap-2 px-3 py-1.5 text-sm bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 rounded-lg hover:bg-purple-200 dark:hover:bg-purple-900/50 transition-colors"
                     >
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -242,6 +242,10 @@ export function Chatbot({ onLaunchQuiz, chatQuery, onClearChatQuery, slideContex
     ];
     setMessages(defaultWelcome);
     localStorage.removeItem('vlearn-chat-history');
+    // Clear all quiz-related contexts
+    quizContextRef.current = null;
+    quizReviewContextRef.current = null;
+    setPendingReviewContext(null);
     setShowClearConfirm(false);
   };
 
